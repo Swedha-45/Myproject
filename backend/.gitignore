@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+# Virtual environment
+venv/
+env/
+
+# IDE/editor
+.vscode/
+
+# Env file
+.env
+
+# Migrations (optional)
+*/migrations/
+
+# System files
+.DS_Store
+Thumbs.db
