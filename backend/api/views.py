@@ -1,5 +1,4 @@
 from django.shortcuts import render
-from django.contrib.auth.models import User
 from rest_framework import generics
 from .serializers import UserSerializer, NoteSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -13,9 +12,16 @@ from django.views.decorators.csrf import csrf_exempt
 from huggingface_hub import InferenceClient
 import os
 from dotenv import load_dotenv
+from django.contrib.auth import get_user_model
+
+
+
 
 load_dotenv()
 api_key = os.getenv("HF_TOKEN")
+
+User = get_user_model()
+queryset = User.objects.all()
 
 class NoteListCreate(generics.ListCreateAPIView):
     serializer_class = NoteSerializer
@@ -45,40 +51,66 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return JsonResponse(serializer.data, status=201)
+        else:
+            print("❌ Serializer errors:", serializer.errors)  # <--- add this
+            return JsonResponse(serializer.errors, status=400)
+
+
+
+
 @csrf_exempt
-def textToImage(req):
-    if req.method == "POST":
-        try:
-            data = json.loads(req.body.decode("utf-8"))
-            text = data.get("text")
+def textToImage(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST requests are allowed."}, status=405)
 
-            if not text:
-                return JsonResponse({"error": "Text is required"}, status=400)
+    try:
+        # Parse JSON from request body
+        data = json.loads(request.body.decode("utf-8"))
+        prompt = data.get("text")
 
-            client = InferenceClient(
-                provider="nebius",
-                api_key=api_key,
-            )
+        if not prompt:
+            return JsonResponse({"error": "The 'text' field is required."}, status=400)
 
-            image = client.text_to_image(
-                text,
-                model="black-forest-labs/FLUX.1-dev",
-            )
+        # Load API key
+        api_key = os.getenv("HF_TOKEN")
+        if not api_key:
+            print("❌ HF_TOKEN not found in .env file.")
+            return JsonResponse({"error": "Hugging Face API token is missing."}, status=500)
 
-            if isinstance(image, Image.Image):
-                buffered = BytesIO()
-                image.save(buffered, format="PNG")
-                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        # Initialize Hugging Face client
+        client = InferenceClient(provider="nebius", api_key=api_key)
 
-                return JsonResponse({"image_data": img_str})
-            else:
-                return JsonResponse({"error": "Image generation failed"}, status=500)
+        print(f"✅ Generating image for prompt: '{prompt}'")
 
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON data"}, status=400)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+        # Call Hugging Face API
+        image = client.text_to_image(
+            prompt,
+            model="black-forest-labs/FLUX.1-dev",
+        )
 
-    return JsonResponse({"error": "Invalid request method. Use POST."}, status=405)
+        # Convert image to base64
+        if isinstance(image, Image.Image):
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            image_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            print("✅ Image generation successful.")
+            return JsonResponse({"image_data": image_str})
+        else:
+            print("❌ Hugging Face did not return an image.")
+            return JsonResponse({"error": "Image generation failed."}, status=500)
+
+    except json.JSONDecodeError:
+        print("❌ Failed to decode JSON from request.")
+        return JsonResponse({"error": "Invalid JSON format."}, status=400)
+
+    except Exception as e:
+        print(f"❌ Unexpected error during image generation: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 

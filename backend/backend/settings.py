@@ -20,6 +20,7 @@ SECRET_KEY = 'django-insecure-p1%*)w(z0w-o+supzqjndkq4x&6%snd!lw_0%e3^@ka2u6j(xr
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+AUTH_USER_MODEL = 'api.CustomUser'  # or 'users.CustomUser' if inside a users app
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -132,8 +133,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#MEDIA_URL = '/media/'
-#MEDIA_ROOT = BASE_DIR / 'media'
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWS_CREDENTIALS = True
