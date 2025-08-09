@@ -2,6 +2,9 @@
 from rest_framework import serializers
 from .models import Note
 from django.contrib.auth import get_user_model
+from .models import TextToImageHistory
+
+
 
 User = get_user_model()
 
@@ -20,3 +23,7 @@ class NoteSerializer(serializers.ModelSerializer):
         model = Note
         fields = ["id", "title", "content", "created_at", "author"]
         extra_kwargs = {"author": {"read_only": True}}
+class TextToImageHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TextToImageHistory
+        fields = ['id', 'prompt', 'generated_image', 'created_at']

@@ -12,6 +12,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import { Link } from 'react-router-dom';
+
 
 function Home() {
     const [text, setText] = useState("");
@@ -46,6 +48,8 @@ function Home() {
     return (
         <>
             {/* Top Bar */}
+            <Link to="/history">View History</Link>
+
             <AppBar position="static">
                 <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
                     <Typography variant="h6">Text to Image App</Typography>

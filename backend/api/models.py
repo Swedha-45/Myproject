@@ -21,3 +21,12 @@ class Note(models.Model):
 
     def __str__(self):
         return self.title
+
+class TextToImageHistory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    prompt = models.CharField(max_length=255)
+    generated_image = models.ImageField(upload_to='generated_images/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.prompt[:20]}"

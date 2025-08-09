@@ -6,15 +6,17 @@ from .models import Note
 import json
 import base64
 from io import BytesIO
+from rest_framework.response import Response
 from PIL import Image
-from django.http import JsonResponse
+from django.http import JsonResponse 
 from django.views.decorators.csrf import csrf_exempt
 from huggingface_hub import InferenceClient
 import os
 from dotenv import load_dotenv
 from django.contrib.auth import get_user_model
-
-
+from rest_framework.decorators import api_view,permission_classes
+from .models import TextToImageHistory
+from .serializers import TextToImageHistorySerializer
 
 
 load_dotenv()
@@ -98,19 +100,33 @@ def textToImage(request):
             buffer = BytesIO()
             image.save(buffer, format="PNG")
             image_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
-            print("✅ Image generation successful.")
+            print(" Image generation successful.")
+
+            TextToImageHistory.objects.create(
+                user=request.user,
+                prompt=prompt,
+                generated_image=image_str # Use the correct variable holding saved image
+            )
             return JsonResponse({"image_data": image_str})
+            
         else:
-            print("❌ Hugging Face did not return an image.")
+            print("Hugging Face did not return an image.")
             return JsonResponse({"error": "Image generation failed."}, status=500)
 
+
     except json.JSONDecodeError:
-        print("❌ Failed to decode JSON from request.")
+        print("Failed to decode JSON from request.")
         return JsonResponse({"error": "Invalid JSON format."}, status=400)
 
     except Exception as e:
-        print(f"❌ Unexpected error during image generation: {str(e)}")
+        print(f" Unexpected error during image generation: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def text_to_image_history(request):
+    history = TextToImageHistory.objects.filter(user=request.user).order_by('-created_at')
+    serializer = TextToImageHistorySerializer(history, many=True)
+    return Response(serializer.data)
 
 

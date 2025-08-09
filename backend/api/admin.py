@@ -1,3 +1,4 @@
+from .models import TextToImageHistory
 from django.contrib import admin
 
-# Register your models here.
+admin.site.register(TextToImageHistory)
